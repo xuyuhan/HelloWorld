@@ -1,58 +1,55 @@
-## tizen-app-checker ##
+#!/usr/bin/env node
 
-    Tizen-app-checker is tools to do compliance checking for Tizen Applications.
-    The tools will generate report files (in HTML format by default) to show the result.
-    They support platforms of Ubuntu 11.04 and later(32 or 64 bit), windows 7(64 bit).
+var fs = require('fs'),
+    fileList = [];
 
-### Dependences ###
-The tools based Node.js(v0.7 or above) and python(v3.0 or above).
-So, please check you environment before to use it.
-Run from command line:
+(function() {
+    var arguments = process.argv.splice(2);
 
-    node --version
-    python --version
+    console.log("Input Path:");
+    console.log(arguments);
 
-### Usage ###
-'Tizen application checker'
-Run from command line:
+    arguments.forEach(function(arg){
+        if (!fs.existsSync(arg)) {
+            console.log('\"' + arg + '\"' + ' is not exist.');
+            console.log("Check failed!");
+            process.exit(0);
+        }
+        walk(arg);
+    });
 
-    ./bin/tizen-app-checker.js [options] <Tizen application (.wgt or .tpk) file>
+    fs.writeFileSync("nativeLib.list", fileList.join(",")) ;
+    console.log("Check succeed!");
+    console.log("Output: " + '\"' + "./nativeLib.list" + '\"');
+})();
 
-Default *{name}.html* and *{name}.log* file will be generated in current directory.
-You can see the details by access the content of them.
 
-more helpful usage can be found by run: 
+function walk(path){
+    var dirList = fs.readdirSync(path);
+    var testRule = /(.a|.so)$|(\.so)+(\.\d+)+/;
 
-    cd bin
-    ./tizen-app-checker.js -h
+    dirList.forEach(function(item){
+        if(testRule.test(item)
+            && fs.statSync(path + '/' + item).isFile()
+            && !fs.lstatSync(path + '/' + item).isSymbolicLink()){
+            if (fileList.indexOf(item) < 0)  {
+                fileList.push(item);
+            }
 
-'Web application checker'
-Implementd Features
- 1. check widget format
- 2. check package composition
- 3. check config.xml
- 4. check device APIs
- 5. check network access
-Run from command line:
-./tizen-app-checker.js [options] package.wgt
+        }
+    });
 
-for example:
+    dirList.forEach(function(item){
+        if(fs.statSync(path + '/' + item).isDirectory()){
+            walk(path + '/' + item);
+        }
+    });
+}
 
-    cd tizen-app-checker/bin
-    ./tizen-app-checker.js ../web/test/tizenSDKSamples/Alarm.wgt
 
-'Native application checker'
-Implementd Features
- 1. check widget format
- 2. check package composition
- 3. check manifest.xml
- 4. check executable file
- 5. check linked library
-Run from command line:
-./tizen-app-checker.js [options] package.tpk
 
-for example:
-
-    cd tizen-app-checker/bin
-    ./tizen-app-checker.js ../native/test/616p56a741-1.0.0-i386.tpk
-
+desktop:~/Desktop/script$ node get_native_lib.js ./tizen-device-2.0.cpp/ ./tizen-device-2.0/
+Input Path:
+[ './tizen-device-2.0.cpp/', './tizen-device-2.0/' ]
+Check succeed!
+Output: "./nativeLib.list"
